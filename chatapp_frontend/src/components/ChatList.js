@@ -34,14 +34,19 @@ const ChatList = ({ chats, activeChat, onChatSelect, onNewChat }) => {
                 : ""
             }`}
           >
+            {console.log("chatt", chat)}
             <div className="flex items-start space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {chat.name?.[0]?.toUpperCase() || "U"}
+                {chat.chat_type === "private"
+                  ? chat.other_member.username?.[0]?.toUpperCase()
+                  : "G"}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-gray-900 truncate">
-                    {chat.name || "Unknown"}
+                    {chat.chat_type === "private"
+                      ? chat.other_member.username
+                      : chat.name || "Unknown"}
                   </h3>
                   <span className="text-xs text-gray-500">
                     {chat.last_message_time
@@ -53,7 +58,9 @@ const ChatList = ({ chats, activeChat, onChatSelect, onNewChat }) => {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 truncate mt-1">
-                  {chat.last_message || "No messages yet"}
+                  {chat.last_message && typeof chat.last_message === "object"
+                    ? chat.last_message.content || "No content"
+                    : chat.last_message || "No messages yet"}
                 </p>
               </div>
             </div>

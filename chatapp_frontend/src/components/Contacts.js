@@ -10,7 +10,7 @@ const Contacts = ({ onClose }) => {
   useEffect(() => {
     loadContacts();
     loadFriendRequests();
-  }, []);
+  }, [contacts]);
 
   const loadContacts = async () => {
     try {
@@ -87,20 +87,23 @@ const Contacts = ({ onClose }) => {
       <div className="flex-1 overflow-y-auto">
         {activeTab === "contacts" ? (
           <div className="p-4 space-y-3">
-            {contacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {contact.name?.[0]?.toUpperCase() || "U"}
+            {contacts &&
+              contacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    {contact.contact_user.username?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">
+                      {contact.contact_user.username}
+                    </h3>
+                    {/* <p className="text-sm text-gray-500">{contact.email}</p> */}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{contact.name}</h3>
-                  <p className="text-sm text-gray-500">{contact.email}</p>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         ) : (
           <div className="p-4 space-y-3">

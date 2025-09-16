@@ -1,27 +1,32 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.contrib.auth import get_user_model
-from .models import Chat, ChatMembership
-from messages.models import Message
-from notifications.models import Notification
-
-User = get_user_model()
+# Do not import models at the top level
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        # Import models only after settings are loaded
+        from .models import Chat, ChatMembership
+        from chat_messages.models import Message
+        from notifications.models import Notification
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.chat_group_name = f'chat_{self.chat_id}'
         self.user = self.scope['user']
 
+        print("[ChatConsumer.connect] user:", self.user)
+        print("[ChatConsumer.connect] chat_id:", self.chat_id)
+
         # Check if user is authenticated and member of chat
         if not self.user.is_authenticated:
+            print("[ChatConsumer.connect] user not authenticated, closing.")
             await self.close()
             return
 
         is_member = await self.is_chat_member()
+        print(f"[ChatConsumer.connect] is_member: {is_member}")
         if not is_member:
+            print("[ChatConsumer.connect] user is not a member of chat, closing.")
             await self.close()
             return
 
@@ -152,10 +157,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def is_chat_member(self):
+        from .models import ChatMembership
         return ChatMembership.objects.filter(chat_id=self.chat_id, user=self.user).exists()
 
     @database_sync_to_async
     def save_message(self, content, reply_to_id=None):
+        from .models import Chat
+        from chat_messages.models import Message
         try:
             chat = Chat.objects.get(id=self.chat_id)
             reply_to = None
@@ -175,7 +183,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def mark_message_read(self, message_id):
-        from messages.models import MessageRead
+        from chat_messages.models import Message, MessageRead
         try:
             message = Message.objects.get(id=message_id)
             MessageRead.objects.get_or_create(message=message, user=self.user)
@@ -203,6 +211,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def send_message_notifications(self, message):
+        from .models import ChatMembership
+        from notifications.models import Notification
         # Get all chat members except the sender
         members = ChatMembership.objects.filter(
             chat=message.chat

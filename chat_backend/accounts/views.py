@@ -58,22 +58,46 @@ class LoginView(APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
 
-            # send 2FA code
-            user.generate_2fa_code()
-            send_2FA_code_email(user)
+            if user.two_factor_enabled:
+                # send 2FA code
+                user.generate_2fa_code()
+                send_2FA_code_email(user)
 
-            # generating temp token
-            temp_token = RefreshToken.for_user(user)
-            return Response({
-                "message": "Login successful! Please check your email for the 2FA code.",
-                "temp_token": str(temp_token)
-            }, status=status.HTTP_200_OK)
+                # generating temp token
+                temp_token = RefreshToken.for_user(user)
+                return Response({
+                    "message": "Login successful! Please check your email for the 2FA code.",
+                    "requires_2fa": True,
+                    "temp_token": str(temp_token)
+                }, status=status.HTTP_200_OK)
+            else:
+                # normal login, return tokens
+                tokens = generate_tokens(user)
+                return Response({
+                    "message": "Login successful.",
+                    "access_token": tokens["access"],
+                    "refresh_token": tokens["refresh"],
+                    "user": {
+                        "user_id": user.id,
+                        "email": user.email,
+                        "username": user.username,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "created_at": user.created_at,
+                        "is_email_verified": user.is_email_verified,
+                        "two_factor_enabled": user.two_factor_enabled
+                    }
+                }, status=status.HTTP_200_OK)
+
         errors = serializer.errors
         if 'non_field_errors' in errors:
             error_msg = str(errors['non_field_errors'][0])
             return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            # Return first field error
+            field_name = list(errors.keys())[0]
+            error_msg = str(errors[field_name][0])
+            return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmailVerificationView(APIView):
@@ -234,41 +258,47 @@ class Verify2FAView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             code = serializer.validated_data.get("code")
-            temp_token = serializer.validated_data("temp_token")
+            temp_token = serializer.validated_data.get("temp_token")
 
             if not temp_token:
                 return Response({
-                    "message": "Invalid temporary token."
+                    "error": "Invalid temporary token."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            refresh = RefreshToken(temp_token)
-            user = User.objects.get(id=refresh['user_id'])
+            try:
+                refresh = RefreshToken(temp_token)
+                user = User.objects.get(id=refresh['user_id'])
 
-            if user.is_2fa_code_valid(code):
-                user.clear_2fa_code()
+                if user.is_2fa_code_valid(code):
+                    user.clear_2fa_code()
 
-                tokens = generate_tokens(user)
+                    tokens = generate_tokens(user)
 
+                    return Response({
+                        "message": "2FA verification successful!",
+                        "access_token": tokens["access"],  # Make it consistent
+                        "refresh_token": tokens["refresh"],
+                        "user": {
+                            "user_id": user.id,
+                            "email": user.email,
+                            "username": user.username,
+                            "first_name": user.first_name,
+                            "last_name": user.last_name,
+                            "created_at": user.created_at,
+                            "is_email_verified": user.is_email_verified,
+                            "two_factor_enabled": user.two_factor_enabled
+                        }
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "error": "Invalid 2FA code."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
                 return Response({
-                    "message": "2FA verification successful!",
-                    "user": {
-                        "user_id": user.id,
-                        "email": user.email,
-                        "username": user.username,
-                        "first_name": user.first_name,
-                        "last_name": user.last_name,
-                        "created_at": user.created_at,
-                        "is_email_verified": user.is_email_verified,
-                        "two_factor_enabled": user.two_factor_enabled
-                    },
-                    "tokens": tokens
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    "message": "Invalid 2FA code."
+                    "error": "Invalid or expired temporary token."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Invalid data provided."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Enable2FAView(APIView):
@@ -348,8 +378,5 @@ class UserRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return User.objects.get(user=self.request.user)
-
-    # def get_object(self):
-    #     return super().get_object()
+    def get_object(self):
+        return self.request.user

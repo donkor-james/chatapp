@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\Donkor James\Desktop\authentications_api\authproject\myenv"
+VIRTUAL_ENV="C:\Users\Donkor James\Desktop\authentications_api\chat_backend\myenv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

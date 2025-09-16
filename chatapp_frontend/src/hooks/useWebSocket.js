@@ -12,10 +12,23 @@ const useWebSocket = (url, onMessage) => {
 
     ws.current = new WebSocket(`${WS_BASE_URL}${url}?token=${token}`);
 
-    ws.current.onopen = () => setIsConnected(true);
-    ws.current.onclose = () => setIsConnected(false);
+    ws.current.onopen = () => {
+      setIsConnected(true);
+      console.log(
+        "WebSocket connected:",
+        `${WS_BASE_URL}${url}?token=${token}`
+      );
+    };
+    ws.current.onclose = () => {
+      setIsConnected(false);
+      console.log(
+        "WebSocket disconnected:",
+        `${WS_BASE_URL}${url}?token=${token}`
+      );
+    };
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log("WebSocket received:", data);
       onMessage(data);
     };
 
@@ -26,7 +39,10 @@ const useWebSocket = (url, onMessage) => {
 
   const sendMessage = useCallback((message) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
+      console.log("WebSocket sending:", message);
       ws.current.send(JSON.stringify(message));
+    } else {
+      console.warn("WebSocket not open. Message not sent:", message);
     }
   }, []);
 

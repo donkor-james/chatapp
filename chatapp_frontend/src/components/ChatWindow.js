@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { MessageCircle, Phone, Video, MoreVertical, Send } from "lucide-react";
 import Message from "./Message";
 
-const ChatWindow = ({ chat, messages, onSendMessage }) => {
+const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
+  console.log("ChatWindow props - messages:", messages);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -31,6 +32,48 @@ const ChatWindow = ({ chat, messages, onSendMessage }) => {
     );
   }
 
+  // Defensive check: show error if messages is not an array
+  if (!Array.isArray(messages)) {
+    console.error(
+      "ChatWindow: messages prop is not an array! Value:",
+      messages
+    );
+    return (
+      <div className="flex-1 flex items-center justify-center bg-red-50">
+        <div className="text-center">
+          <p className="text-red-500 font-bold">
+            Error: messages prop is not an array!
+          </p>
+          <pre
+            className="text-xs text-red-700 bg-red-100 p-2 rounded mt-2 overflow-x-auto"
+            style={{ maxWidth: 600, margin: "0 auto" }}
+          >
+            {JSON.stringify(messages, null, 2)}
+          </pre>
+        </div>
+      </div>
+    );
+  }
+
+  // Log and filter messages before rendering
+  console.log("Rendering messages:", messages);
+  const safeMessages = messages.filter((m, i) => {
+    const valid =
+      m &&
+      typeof m === "object" &&
+      !Array.isArray(m) &&
+      typeof m.content === "string";
+    if (!valid) {
+      console.warn("Skipping invalid message at index", i, m);
+    }
+    return valid;
+  });
+  console.log("-------- safeMessages: ", safeMessages);
+
+  // const handleIsOwn = (sender) => {
+  //   return message.sender && message.sender.id === currentUser.id;
+  // };
+
   return (
     <div className="flex-1 flex flex-col bg-white">
       {/* Chat Header */}
@@ -38,11 +81,15 @@ const ChatWindow = ({ chat, messages, onSendMessage }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-              {chat.name?.[0]?.toUpperCase() || "U"}
+              {chat.chat_type === "private"
+                ? chat.other_member.username?.[0]?.toUpperCase()
+                : "G"}
             </div>
             <div>
               <h3 className="font-medium text-gray-900">
-                {chat.name || "Unknown"}
+                {chat.chat_type === "private"
+                  ? chat.other_member?.username
+                  : chat.name}
               </h3>
               <p className="text-sm text-gray-500">Online</p>
             </div>
@@ -62,9 +109,21 @@ const ChatWindow = ({ chat, messages, onSendMessage }) => {
       </div>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        {messages.map((message) => (
-          <Message key={message.id} message={message} isOwn={message.is_own} />
-        ))}
+        {safeMessages.map((message) => {
+          console.log(
+            "Rendering message:",
+            message.sender.id,
+            currentUser.id,
+            message.sender.id === currentUser.id ? true : false
+          );
+          return (
+            <Message
+              key={message.id}
+              message={message}
+              isOwn={message.sender.id === currentUser.id ? true : false}
+            />
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
       {/* Message Input */}

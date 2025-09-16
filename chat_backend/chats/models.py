@@ -1,8 +1,6 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
-
-User = get_user_model()
 
 
 class Chat(models.Model):
@@ -14,10 +12,11 @@ class Chat(models.Model):
     name = models.CharField(max_length=100, blank=True, null=True)
     chat_type = models.CharField(
         max_length=20, choices=CHAT_TYPES, default='private')
+    # Use string reference for User model to avoid early evaluation
     members = models.ManyToManyField(
-        User, related_name='chats', through='ChatMembership')
+        settings.AUTH_USER_MODEL, related_name='chats', through='ChatMembership')
     created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='created_chats')
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_chats')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -47,7 +46,8 @@ class ChatMembership(models.Model):
     )
 
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLES, default='member')
     joined_at = models.DateTimeField(auto_now_add=True)
     last_read_message = models.ForeignKey(

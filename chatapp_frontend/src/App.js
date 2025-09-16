@@ -1,27 +1,9 @@
-import logo from "./logo.svg";
-import "./App.css";
-
 import React, { useContext } from "react";
 import { AuthContext } from "./components/AuthProvider";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import Login from "./components/Login";
-import Register from "./components/Register";
-import PasswordResetRequest from "./components/PasswordResetRequest";
-import PasswordResetConfirm from "./components/PasswordResetConfirm";
-import EmailVerification from "./components/EmailVerification";
-import ResendVerification from "./components/ResendVerification";
 import ChatApp from "./components/ChatApp";
-import Contacts from "./components/Contacts";
-import Profile from "./components/Profile";
-import Notifications from "./components/Notifications";
 
 const App = () => {
-  const { user, loading } = useContext(AuthContext);
+  const { loading } = useContext(AuthContext);
 
   if (loading) {
     return (
@@ -34,41 +16,7 @@ const App = () => {
     );
   }
 
-  return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/password-reset" element={<PasswordResetRequest />} />
-        <Route
-          path="/password-reset/confirm/:token"
-          element={<PasswordResetConfirm />}
-        />
-        <Route path="/verify-email/" element={<EmailVerification />} />
-        <Route path="/resend-verification" element={<ResendVerification />} />
-
-        {/* Protected routes */}
-        <Route
-          path="/"
-          element={user ? <ChatApp /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/contacts"
-          element={user ? <Contacts /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/profile"
-          element={user ? <Profile /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/notifications"
-          element={user ? <Notifications /> : <Navigate to="/login" />}
-        />
-        {/* Add more feature pages as needed */}
-      </Routes>
-    </Router>
-  );
+  return <ChatApp />;
 };
 
 export default App;

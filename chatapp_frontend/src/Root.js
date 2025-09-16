@@ -1,10 +1,10 @@
 import React from "react";
 import AuthProvider from "./components/AuthProvider";
-import App from "./App";
+import AppRouter from "./AppRouter";
 
 const Root = () => (
   <AuthProvider>
-    <App />
+    <AppRouter />
   </AuthProvider>
 );
 

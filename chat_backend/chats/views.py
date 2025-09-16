@@ -23,8 +23,13 @@ class ChatListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        from accounts.models import User
+        print("DEBUG request.user:", self.request.user, type(self.request.user))
+        user = self.request.user
+        if isinstance(user, str):
+            user = User.objects.get(email=user)
         return Chat.objects.filter(
-            members=self.request.user,
+            members=user.id,
             is_active=True
         ).prefetch_related(
             'members',
@@ -59,9 +64,16 @@ class CreateChatView(APIView):
                         status=status.HTTP_200_OK
                     )
 
+                # Set chat name to contact's username
+                from accounts.models import User
+                other_user = User.objects.get(id=other_user_id)
+                chat_name = other_user.username or other_user.email
+            else:
+                chat_name = validated_data.get('name', '')
+
             # Create new chat
             chat = Chat.objects.create(
-                name=validated_data.get('name', ''),
+                name=chat_name,
                 chat_type=chat_type,
                 created_by=request.user
             )

@@ -119,6 +119,7 @@ class ResendEmailSerializer(serializers.Serializer):
 
 class Verify2FASerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
+    temp_token = serializers.CharField()
 
 
 class Enable2FASerializer(serializers.Serializer):

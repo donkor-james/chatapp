@@ -1,5 +1,3 @@
-# ================================
-
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -8,8 +6,10 @@ from channels.db import database_sync_to_async
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
+        print(
+            f"[NotificationConsumer] self.user: {self.user} (type: {type(self.user)}) is_authenticated: {getattr(self.user, 'is_authenticated', None)}")
 
-        if not self.user.is_authenticated:
+        if not self.user or not getattr(self.user, 'is_authenticated', False):
             await self.close()
             return
 
@@ -22,12 +22,15 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        print("[NotificationConsumer] WebSocket connection accepted!")
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.notification_group_name,
-            self.channel_name
-        )
+        group_name = getattr(self, 'notification_group_name', None)
+        if group_name:
+            await self.channel_layer.group_discard(
+                group_name,
+                self.channel_name
+            )
 
     async def receive(self, text_data):
         try:

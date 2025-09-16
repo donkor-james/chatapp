@@ -68,7 +68,7 @@ class CreateChatSerializer(serializers.Serializer):
     chat_type = serializers.ChoiceField(
         choices=Chat.CHAT_TYPES, default='private')
     member_ids = serializers.ListField(
-        child=serializers.IntegerField(), min_length=1)
+        child=serializers.UUIDField(), min_length=1)
 
     def validate_member_ids(self, value):
         # Check if all users exist

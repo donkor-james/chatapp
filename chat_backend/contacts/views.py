@@ -10,6 +10,8 @@ from asgiref.sync import async_to_sync
 from .models import Contact, FriendRequest, BlockedUser, User
 from .serializers import ContactSerializer, FriendRequestSerializer, SendFriendRequestSerializer
 from notifications.models import Notification
+from chats.models import Chat, ChatMembership
+from chats.serializers import ChatSerializer
 
 channel_layer = get_channel_layer()
 
@@ -20,6 +22,8 @@ class ContactListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        print("contacts: ", Contact.objects.filter(
+            owner=self.request.user).select_related('contact_user'))
         return Contact.objects.filter(owner=self.request.user).select_related('contact_user')
 
 
@@ -235,3 +239,39 @@ class UnblockUserView(APIView):
             {'message': 'User unblocked successfully'},
             status=status.HTTP_200_OK
         )
+
+
+class StartChatWithContactView(APIView):
+    """Start a private chat with a contact (or get existing)"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        contact_user_id = request.data.get('contact_user_id')
+        if not contact_user_id:
+            return Response({'error': 'contact_user_id required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check contact exists
+        contact = Contact.objects.filter(
+            owner=request.user, contact_user_id=contact_user_id).first()
+        if not contact:
+            return Response({'error': 'Contact not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if chat already exists
+        existing_chat = Chat.objects.filter(
+            chat_type='private',
+            members=request.user
+        ).filter(members__id=contact_user_id).first()
+        if existing_chat:
+            return Response(ChatSerializer(existing_chat, context={'request': request}).data, status=status.HTTP_200_OK)
+
+        # Create new chat
+        chat = Chat.objects.create(
+            chat_type='private',
+            created_by=request.user
+        )
+        ChatMembership.objects.create(
+            chat=chat, user=request.user, role='member')
+        ChatMembership.objects.create(
+            chat=chat, user_id=contact_user_id, role='member')
+
+        return Response(ChatSerializer(chat, context={'request': request}).data, status=status.HTTP_201_CREATED)

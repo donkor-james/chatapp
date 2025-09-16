@@ -1,12 +1,13 @@
-import os
-from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-from chats.consumers import ChatConsumer
-from notifications.consumers import NotificationConsumer
-from django.urls import path
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_backend.settings')
+from django.urls import path
+from notifications.consumers import NotificationConsumer
+from chats.consumers import ChatConsumer
+from accounts.jwt_channels_middleware import JWTAuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
+
 
 websocket_urlpatterns = [
     path('ws/chat/<int:chat_id>/', ChatConsumer.as_asgi()),
@@ -15,7 +16,7 @@ websocket_urlpatterns = [
 
 application = ProtocolTypeRouter({
     'http': get_asgi_application(),
-    'websocket': AuthMiddlewareStack(
+    'websocket': JWTAuthMiddlewareStack(
         URLRouter(websocket_urlpatterns)
     ),
 })

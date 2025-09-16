@@ -1,19 +1,37 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "./AuthProvider";
 import { Shield, MessageCircle, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
 const Login = () => {
-  const { login } = useContext(AuthContext);
+  const {
+    login,
+    setUser,
+    setLoading: setAuthLoading,
+  } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [show2FA, setShow2FA] = useState(false);
   const [tempToken, setTempToken] = useState("");
   const [twoFACode, setTwoFACode] = useState("");
+
+  const handleSuccessfulAuth = (tokens, userData) => {
+    // Store tokens
+    localStorage.setItem("access_token", tokens.access_token);
+    localStorage.setItem("refresh_token", tokens.refresh_token);
+
+    // Update AuthContext with user data
+    console.log("Setting user data:", userData);
+    setUser(userData);
+
+    // Navigate to main app (this won't cause page reload)
+    navigate("/");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,27 +40,43 @@ const Login = () => {
 
     try {
       const result = await login(formData.email, formData.password);
-      if (result.requires2fa) {
+      console.log(result);
+      // Check if 2FA is required
+      if (result.requires_2fa && result.temp_token) {
         setShow2FA(true);
-        setTempToken(result.tempToken);
+        setTempToken(result.temp_token);
+        return;
       }
-    } catch (error) {
-      console.log(error);
-      // Handle different error formats
-      if (error && typeof error === "object") {
-        if (error.error) {
-          setError(error.error);
-        } else {
-          // Check for field errors
-          const field = Object.keys(error)[0];
-          if (Array.isArray(error[field])) {
-            setError(error[field][0]);
-          } else {
-            setError(error.message || String(error));
-          }
-        }
+
+      // Normal login with tokens
+      if (result.access_token && result.refresh_token && result.user) {
+        handleSuccessfulAuth(
+          {
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+          },
+          result.user
+        );
+        return;
+      }
+
+      if (result.error) {
+        setError(result.error);
+        return;
       } else {
+        setError("Login failed. Please try again.");
+      }
+
+      // If we get here, something unexpected happened
+      setError("Login failed. Please try again.");
+    } catch (error) {
+      console.error("Login error:", error);
+      if (error?.error) {
+        setError(error.error);
+      } else if (typeof error === "string") {
         setError(error);
+      } else {
+        setError("Login failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -52,24 +86,36 @@ const Login = () => {
   const handle2FASubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/2fa/verify/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ temp_token: tempToken, code: twoFACode }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          temp_token: tempToken,
+          code: twoFACode,
+        }),
       });
 
       const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
-        window.location.reload();
+
+      if (response.ok && data.access_token && data.refresh_token && data.user) {
+        handleSuccessfulAuth(
+          {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+          },
+          data.user
+        );
       } else {
-        setError(data.message || "2FA verification failed");
+        setError(data.error || "2FA verification failed");
       }
     } catch (error) {
-      setError("2FA verification failed");
+      console.error("2FA verification error:", error);
+      setError("2FA verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
