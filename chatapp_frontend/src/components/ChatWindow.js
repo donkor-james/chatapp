@@ -57,18 +57,20 @@ const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
 
   // Log and filter messages before rendering
   console.log("Rendering messages:", messages);
-  const safeMessages = messages.filter((m, i) => {
-    const valid =
-      m &&
-      typeof m === "object" &&
-      !Array.isArray(m) &&
-      typeof m.content === "string";
-    if (!valid) {
-      console.warn("Skipping invalid message at index", i, m);
-    }
-    return valid;
-  });
-  console.log("-------- safeMessages: ", safeMessages);
+  const safeMessages = messages
+    .filter((m, i) => {
+      const valid =
+        m &&
+        typeof m === "object" &&
+        !Array.isArray(m) &&
+        typeof m.content === "string";
+      if (!valid) {
+        console.warn("Skipping invalid message at index", i, m);
+      }
+      return valid;
+    })
+    .reverse();
+  // console.log("-------- safeMessages: ", safeMessages.reverse());
 
   // const handleIsOwn = (sender) => {
   //   return message.sender && message.sender.id === currentUser.id;

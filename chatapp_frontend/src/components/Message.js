@@ -13,13 +13,13 @@ const Message = ({ message, isOwn }) => {
       >
         {console.log("msg file: ", message)}
         {/* Render reply_to if present and is an object with content */}
-        {message.reply_to &&
+        {/* {message.reply_to &&
           typeof message.reply_to === "object" &&
           typeof message.reply_to.content === "string" && (
             <div className="text-xs text-gray-400 mb-1">
               Replying to: {message.reply_to.content}
             </div>
-          )}
+          )} */}
         {/* Show sender username if available and not own message */}
         {!isOwn &&
           message.sender &&

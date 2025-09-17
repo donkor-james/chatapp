@@ -2,7 +2,9 @@ chatapp_frontend/node_modules
 chatapp_frontend/.env
 chatapp_frontend/build
 
+
 chatapp_backend/myenv
 chatapp_backend/__pycache__
 chatapp_backend/*.pyc
 chatapp_backend/*.sqlite3
+*/__pycache__
