@@ -48,7 +48,7 @@ class FriendRequestSerializer(serializers.ModelSerializer):
 
 
 class SendFriendRequestSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
+    user_id = serializers.UUIDField()
 
     def validate_user_id(self, value):
         try:
@@ -67,9 +67,14 @@ class SendFriendRequestSerializer(serializers.Serializer):
         if Contact.objects.filter(owner=request_user, contact_user=user).exists():
             raise serializers.ValidationError("Already in contacts")
 
-        # Check if request already exists
-        if FriendRequest.objects.filter(from_user=request_user, to_user=user, status='pending').exists():
+        # Check if request already exists (pending or accepted)
+        if FriendRequest.objects.filter(from_user=request_user, to_user=user).exclude(status='declined').exists():
             raise serializers.ValidationError("Friend request already sent")
+
+        # Check if there's a reverse request (user has sent request to current user)
+        if FriendRequest.objects.filter(from_user=user, to_user=request_user).exclude(status='declined').exists():
+            raise serializers.ValidationError(
+                "This user has already sent you a friend request")
 
         # Check if user is blocked
         if BlockedUser.objects.filter(blocker=user, blocked=request_user).exists():

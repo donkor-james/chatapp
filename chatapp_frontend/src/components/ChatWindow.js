@@ -6,7 +6,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
 
-  console.log("ChatWindow props - messages:", messages);
+  // console.log("ChatWindow props - messages:", messages);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -69,7 +69,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
       }
       return valid;
     })
-    .reverse();
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   // console.log("-------- safeMessages: ", safeMessages.reverse());
 
   // const handleIsOwn = (sender) => {
@@ -113,7 +113,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {safeMessages.map((message) => {
           console.log(
-            "Rendering message:",
+            " message: layout",
             message.sender.id,
             currentUser.id,
             message.sender.id === currentUser.id ? true : false

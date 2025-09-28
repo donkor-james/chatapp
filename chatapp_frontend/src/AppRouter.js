@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthContext } from "./components/AuthProvider";
+import ApiService from "./services/ApiService";
 import ChatApp from "./components/ChatApp";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -13,9 +14,29 @@ import PasswordResetRequest from "./components/PasswordResetRequest";
 import PasswordResetConfirm from "./components/PasswordResetConfirm";
 import EmailVerification from "./components/EmailVerification";
 import ResendVerification from "./components/ResendVerification";
+import Notifications from "./components/Notifications";
 
 const AppRouter = () => {
-  const { user } = useContext(AuthContext);
+  const { user, setUser, setLoading } = useContext(AuthContext);
+  const token = localStorage.getItem("access_token");
+
+  useEffect(() => {
+    setLoading(true);
+    if (token) {
+      ApiService.get("/auth/profile/")
+        .then(setUser)
+        .catch(() => {
+          console.log("Invalid token, logging out");
+          alert("logging out");
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
   return (
     <Router>
       <Routes>
@@ -41,6 +62,7 @@ const AppRouter = () => {
             user ? <ChatApp activeView="contacts" /> : <Navigate to="/login" />
           }
         />
+        {/* Notifications route removed: now handled as overlay in ChatApp */}
         <Route
           path="*"
           element={<Navigate to={user ? "/chats" : "/login"} />}

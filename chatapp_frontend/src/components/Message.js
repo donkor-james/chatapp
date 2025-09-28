@@ -1,7 +1,7 @@
 import React from "react";
 
 const Message = ({ message, isOwn }) => {
-  console.log("Message object being rendered:", message);
+  // console.log("Message object being rendered:", message);
   return (
     <div className={`flex mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
       <div
@@ -11,7 +11,7 @@ const Message = ({ message, isOwn }) => {
             : "bg-gray-100 text-gray-800 rounded-bl-md"
         }`}
       >
-        {console.log("msg file: ", message)}
+        {/* {console.log("msg file: ", message)} */}
         {/* Render reply_to if present and is an object with content */}
         {/* {message.reply_to &&
           typeof message.reply_to === "object" &&

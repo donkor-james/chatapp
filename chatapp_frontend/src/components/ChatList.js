@@ -1,7 +1,13 @@
 import React from "react";
 import { UserPlus, Search } from "lucide-react";
 
-const ChatList = ({ chats, activeChat, onChatSelect, onNewChat }) => {
+const ChatList = ({
+  chats,
+  activeChat,
+  onChatSelect,
+  onNewChat,
+  currentUser,
+}) => {
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
@@ -49,19 +55,24 @@ const ChatList = ({ chats, activeChat, onChatSelect, onNewChat }) => {
                       : chat.name || "Unknown"}
                   </h3>
                   <span className="text-xs text-gray-500">
-                    {chat.last_message_time
-                      ? new Date(chat.last_message_time).toLocaleTimeString(
-                          [],
-                          { hour: "2-digit", minute: "2-digit" }
-                        )
+                    {chat.created_at
+                      ? new Date(chat.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                       : ""}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 truncate mt-1">
-                  {chat.last_message && typeof chat.last_message === "object"
-                    ? chat.last_message.content || "No content"
-                    : chat.last_message || "No messages yet"}
-                </p>
+                {chat.last_message && (
+                  <p className="text-sm text-gray-500 truncate mt-1">
+                    {currentUser.id === chat.last_message.sender.id
+                      ? "You: "
+                      : ""}
+                    {chat.last_message && typeof chat.last_message === "object"
+                      ? chat.last_message.content || "No content"
+                      : chat.last_message || "No messages yet"}
+                  </p>
+                )}
               </div>
             </div>
           </div>

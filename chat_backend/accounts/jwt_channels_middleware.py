@@ -1,55 +1,77 @@
-
+# accounts/jwt_channels_middleware.py - Fixed import order
+import logging
 from urllib.parse import parse_qs
-from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
+from channels.db import database_sync_to_async
+
+logger = logging.getLogger(__name__)
+
+
+@database_sync_to_async
+def get_user(user_id):
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import AnonymousUser
+
+    User = get_user_model()
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return AnonymousUser()
 
 
 class JWTAuthMiddleware(BaseMiddleware):
+    def __init__(self, inner):
+        super().__init__(inner)
+
     async def __call__(self, scope, receive, send):
-        from django.conf import settings
-        from rest_framework_simplejwt.tokens import UntypedToken
+        # Import Django modules inside the method to avoid import order issues
+        from django.contrib.auth.models import AnonymousUser
+        from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
         from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-        from rest_framework_simplejwt.authentication import JWTAuthentication
-        from django.contrib.auth import get_user_model
 
-        User = get_user_model()
+        logger.info("JWT Middleware called!")
 
-        @database_sync_to_async
-        def get_user(user_id):
-            try:
-                return User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return None
-
-        token = None
+        # Extract token from query string
         query_string = scope.get('query_string', b'').decode()
         query_params = parse_qs(query_string)
+
+        logger.info(f"Query params: {query_params}")
+
+        token = None
         if 'token' in query_params:
             token = query_params['token'][0]
-        else:
-            headers = dict(scope.get('headers', []))
-            auth_header = headers.get(b'authorization')
-            if auth_header:
-                token = auth_header.decode().split(' ')[-1]
+            logger.info(f"Token found: {token[:50]}...")
 
-        scope['user'] = None
         if token:
             try:
-                validated_token = UntypedToken(token)
-                jwt_auth = JWTAuthentication()
+                # Validate the token
+                UntypedToken(token)
 
-                from asgiref.sync import sync_to_async
-                user_obj = await sync_to_async(jwt_auth.get_user)(validated_token)
-                user_id = validated_token[settings.SIMPLE_JWT['USER_ID_CLAIM']]
+                # Decode token to get user ID
+                access_token = AccessToken(token)
+                user_id = access_token['user_id']
+
+                logger.info(f"User ID from token: {user_id}")
+
+                # Get user from database
                 user = await get_user(user_id)
-                print(
-                    f"[JWTAuthMiddleware] Authenticated user: {user} (type: {type(user)})")
                 scope['user'] = user
-            except (InvalidToken, TokenError, Exception) as e:
-                print(f"[JWTAuthMiddleware] Token validation failed: {e}")
-                scope['user'] = None
 
-        print(f"[JWTAuthMiddleware] Final scope['user']: {scope['user']}")
+                if hasattr(user, 'username'):
+                    logger.info(f"Authenticated: {user.username}")
+                else:
+                    logger.warning("User not found")
+
+            except (InvalidToken, TokenError) as e:
+                logger.error(f"Token validation failed: {e}")
+                scope['user'] = AnonymousUser()
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                scope['user'] = AnonymousUser()
+        else:
+            logger.warning("No token provided")
+            scope['user'] = AnonymousUser()
+
         return await super().__call__(scope, receive, send)
 
 

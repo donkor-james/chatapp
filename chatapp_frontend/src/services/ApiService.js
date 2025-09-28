@@ -52,6 +52,15 @@ class ApiService {
 
   static async get(endpoint) {
     const response = await this.request(endpoint);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API Error:", errorData);
+      throw new Error(
+        `API Error: ${response.status} - ${JSON.stringify(errorData)}`
+      );
+    }
+
     return response.json();
   }
 
@@ -60,6 +69,15 @@ class ApiService {
       method: "POST",
       body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API Error:", errorData);
+      throw new Error(
+        `API Error: ${response.status} - ${JSON.stringify(errorData)}`
+      );
+    }
+
     return response.json();
   }
 }

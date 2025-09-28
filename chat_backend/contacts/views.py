@@ -12,8 +12,53 @@ from .serializers import ContactSerializer, FriendRequestSerializer, SendFriendR
 from notifications.models import Notification
 from chats.models import Chat, ChatMembership
 from chats.serializers import ChatSerializer
+from accounts.serializers import UserProfileSerializer
+import random
 
 channel_layer = get_channel_layer()
+
+
+class ContactSuggestionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        print(f"ContactSuggestionView called for user: {user}")
+        # Get IDs of users already connected (contacts) and self
+        contact_ids = set([user.id])
+        contact_ids.update(Contact.objects.filter(
+            owner=user).values_list('contact_user_id', flat=True))
+
+        # Get IDs of users the current user has already sent a friend request to (pending or accepted)
+        sent_request_ids = set(
+            FriendRequest.objects.filter(from_user=user)
+            .exclude(status='declined')
+            .values_list('to_user_id', flat=True)
+        )
+
+        # Get IDs of users who have sent friend requests TO the current user (pending or accepted)
+        received_request_ids = set(
+            FriendRequest.objects.filter(to_user=user)
+            .exclude(status='declined')
+            .values_list('from_user_id', flat=True)
+        )
+
+        print(f"Contact IDs: {contact_ids}")
+        print(f"Sent request IDs: {sent_request_ids}")
+        print(f"Received request IDs: {received_request_ids}")
+        print(
+            f"Total exclude IDs: {contact_ids.union(sent_request_ids).union(received_request_ids)}")
+
+        # Exclude current user, their contacts, users they've sent requests to, and users who've sent requests to them
+        exclude_ids = contact_ids.union(
+            sent_request_ids).union(received_request_ids)
+        qs = User.objects.exclude(id__in=exclude_ids)
+        user_count = qs.count()
+        num_suggestions = min(10, user_count)
+        suggestions = random.sample(
+            list(qs), num_suggestions) if user_count > 0 else []
+        data = UserProfileSerializer(suggestions, many=True).data
+        return Response(data)
 
 
 class ContactListView(generics.ListAPIView):
@@ -39,10 +84,16 @@ class FriendRequestListView(generics.ListAPIView):
         queryset = FriendRequest.objects.select_related('from_user', 'to_user')
 
         if request_type == 'sent':
-            return queryset.filter(from_user=user)
+            # print("sent request list: ", queryset.filter(
+            #     from_user=user), "type: ", request_type)
+            # return queryset.filter(from_user=user)
+            return None
         elif request_type == 'received':
+            print("sent request list: ", queryset.filter(
+                to_user=user), "type: ", request_type)
             return queryset.filter(to_user=user, status='pending')
         else:
+            print("type: ", request_type)
             return queryset.filter(Q(from_user=user) | Q(to_user=user))
 
 
@@ -51,17 +102,33 @@ class SendFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        print(f"SendFriendRequestView received data: {request.data}")
         serializer = SendFriendRequestSerializer(
             data=request.data, context={'request': request})
         if serializer.is_valid():
             user_id = serializer.validated_data['user_id']
+            print(f"Validated user_id: {user_id}")
             to_user = get_object_or_404(User, id=user_id)
+            print(f"Found to_user: {to_user}")
 
-            # Create friend request
-            friend_request = FriendRequest.objects.create(
+            # Get or create friend request (handle declined requests)
+            friend_request, created = FriendRequest.objects.get_or_create(
                 from_user=request.user,
-                to_user=to_user
+                to_user=to_user,
+                defaults={'status': 'pending'}
             )
+
+            # If it existed but was declined, reset it to pending
+            if not created and friend_request.status == 'declined':
+                friend_request.status = 'pending'
+                friend_request.save()
+                print(
+                    f"Reset declined friend_request to pending: {friend_request.id}")
+            elif created:
+                print(f"Created new friend_request: {friend_request.id}")
+            else:
+                print(
+                    f"Friend request already exists with status: {friend_request.status}")
 
             # Create notification
             notification = Notification.objects.create(
@@ -86,7 +153,7 @@ class SendFriendRequestView(APIView):
                         'data': notification.data,
                         'created_at': notification.created_at.isoformat(),
                         'sender': {
-                            'id': request.user.id,
+                            'id': str(request.user.id),
                             'username': request.user.username,
                             'first_name': request.user.first_name,
                             'last_name': request.user.last_name,
@@ -100,6 +167,7 @@ class SendFriendRequestView(APIView):
                 status=status.HTTP_201_CREATED
             )
 
+        print(f"Serializer errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -132,7 +200,7 @@ class AcceptFriendRequestView(APIView):
             notification_type='friend_accepted',
             title=f'{request.user.username} accepted your friend request',
             message=f'You and {request.user.first_name or request.user.username} are now friends!',
-            data={'user_id': request.user.id}
+            data={'user_id': str(request.user.id)}
         )
 
         # Send real-time notification
@@ -148,7 +216,7 @@ class AcceptFriendRequestView(APIView):
                     'data': notification.data,
                     'created_at': notification.created_at.isoformat(),
                     'sender': {
-                        'id': request.user.id,
+                        'id': str(request.user.id),
                         'username': request.user.username,
                         'first_name': request.user.first_name,
                         'last_name': request.user.last_name,
