@@ -122,7 +122,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message_dict = await self.message_to_dict(message)
         logger.info(f"Broadcasting message to group {self.chat_group_name}")
 
-        # Send message to chat group
+        # Send message to chat group (for active chat windows)
         await self.channel_layer.group_send(
             self.chat_group_name,
             {
@@ -130,6 +130,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'message': message_dict
             }
         )
+
+        # Send message to all chat members' user chat groups (for chat list updates)
+        await self.send_to_user_chat_groups(message, message_dict)
 
         # Send notifications to offline members
         # await self.send_message_notifications(message)
@@ -296,3 +299,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error marking message as read: {str(e)}")
+
+    async def send_to_user_chat_groups(self, message, message_dict):
+        """Send message to all chat members' user chat groups for chat list updates"""
+        try:
+            # Get all members of this chat
+            members = await self.get_chat_members(message.chat.id)
+
+            for member_id in members:
+                user_group = f'user_chats_{member_id}'
+                await self.channel_layer.group_send(
+                    user_group,
+                    {
+                        'type': 'chat_message',
+                        'message': message_dict
+                    }
+                )
+
+        except Exception as e:
+            logger.error(f"Error sending to user chat groups: {str(e)}")
+
+    @database_sync_to_async
+    def get_chat_members(self, chat_id):
+        """Get list of all member IDs for a chat"""
+        try:
+            from .models import ChatMembership
+            return list(
+                ChatMembership.objects.filter(chat_id=chat_id)
+                .values_list('user_id', flat=True)
+            )
+        except Exception as e:
+            logger.error(f"Error getting chat members: {str(e)}")
+            return []
