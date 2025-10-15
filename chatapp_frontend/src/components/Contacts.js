@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import ApiService from "../services/ApiService";
 import { X, UserPlus } from "lucide-react";
+import UserProfileModal from "./UserProfileModal";
 
-const Contacts = ({ onClose }) => {
+const Contacts = ({ onClose, onStartChat }) => {
   const [contacts, setContacts] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [activeTab, setActiveTab] = useState("contacts");
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -77,6 +80,24 @@ const Contacts = ({ onClose }) => {
     }
   };
 
+  // Handler for opening the profile modal
+  const handleContactClick = (contact) => {
+    setSelectedContact(contact.contact_user);
+    setShowProfileModal(true);
+  };
+
+  // Handler for messaging from the modal
+  const handleMessage = async () => {
+    if (selectedContact) {
+      onStartChat(selectedContact);
+    }
+  };
+
+  // Handler for call (placeholder)
+  const handleCall = () => {
+    alert("Call feature coming soon!");
+  };
+
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
@@ -119,7 +140,8 @@ const Contacts = ({ onClose }) => {
               contacts.map((contact) => (
                 <div
                   key={contact.id}
-                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg"
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                  onClick={() => handleContactClick(contact)}
                 >
                   <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
                     {contact.contact_user.username?.[0]?.toUpperCase() || "U"}
@@ -213,6 +235,14 @@ const Contacts = ({ onClose }) => {
           </>
         )}
       </div>
+      {/* User Profile Modal */}
+      <UserProfileModal
+        user={selectedContact}
+        open={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onMessage={handleMessage}
+        onCall={handleCall}
+      />
     </div>
   );
 };

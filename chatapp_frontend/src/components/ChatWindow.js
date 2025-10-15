@@ -84,13 +84,13 @@ const ChatWindow = ({ chat, messages, onSendMessage, currentUser }) => {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
               {chat.chat_type === "private"
-                ? chat.other_member.username?.[0]?.toUpperCase()
+                ? chat.other_member?.username?.[0]?.toUpperCase() || "U"
                 : "G"}
             </div>
             <div>
               <h3 className="font-medium text-gray-900">
                 {chat.chat_type === "private"
-                  ? chat.other_member?.username
+                  ? chat.other_member?.username || "Unknown User"
                   : chat.name}
               </h3>
               <p className="text-sm text-gray-500">Online</p>

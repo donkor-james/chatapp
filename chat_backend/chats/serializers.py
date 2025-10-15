@@ -13,7 +13,7 @@ class ChatMemberSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         return {
-            'id': obj.user.id,
+            'id': str(obj.user.id),  # Convert UUID to string
             'username': obj.user.username,
             'email': obj.user.email,
             'first_name': obj.user.first_name,
@@ -22,6 +22,8 @@ class ChatMemberSerializer(serializers.ModelSerializer):
 
 
 class ChatSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()  # Convert UUID to string
+    created_by = serializers.SerializerMethodField()  # Convert UUID to string
     members = ChatMemberSerializer(
         source='chatmembership_set', many=True, read_only=True)
     last_message = MessageSerializer(read_only=True)
@@ -32,7 +34,13 @@ class ChatSerializer(serializers.ModelSerializer):
         model = Chat
         fields = ('id', 'name', 'chat_type', 'members', 'created_by', 'created_at',
                   'updated_at', 'last_message', 'unread_count', 'other_member')
-        read_only_fields = ('created_by', 'created_at', 'updated_at')
+        read_only_fields = ('created_at', 'updated_at')
+
+    def get_id(self, obj):
+        return str(obj.id)
+
+    def get_created_by(self, obj):
+        return str(obj.created_by.id) if obj.created_by else None
 
     def get_unread_count(self, obj):
         request = self.context.get('request')
@@ -54,7 +62,7 @@ class ChatSerializer(serializers.ModelSerializer):
             other_member = obj.get_other_member(request.user)
             if other_member:
                 return {
-                    'id': other_member.id,
+                    'id': str(other_member.id),  # Convert UUID to string
                     'username': other_member.username,
                     'first_name': other_member.first_name,
                     'last_name': other_member.last_name,

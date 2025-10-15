@@ -3,6 +3,8 @@ from .models import Message, MessageRead
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()  # Convert UUID to string
+    chat = serializers.SerializerMethodField()  # Convert UUID to string
     sender = serializers.SerializerMethodField()
     reply_to = serializers.SerializerMethodField()
     is_read = serializers.SerializerMethodField()
@@ -11,12 +13,17 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ('id', 'chat', 'sender', 'content', 'message_type', 'file',
                   'created_at', 'updated_at', 'is_edited', 'reply_to', 'is_read')
-        read_only_fields = ('id', 'sender', 'created_at',
-                            'updated_at', 'is_edited')
+        read_only_fields = ('created_at', 'updated_at', 'is_edited')
+
+    def get_id(self, obj):
+        return str(obj.id)
+
+    def get_chat(self, obj):
+        return str(obj.chat.id)
 
     def get_sender(self, obj):
         return {
-            'id': obj.sender.id,
+            'id': str(obj.sender.id),  # Convert UUID to string
             'username': obj.sender.username,
             'first_name': obj.sender.first_name,
             'last_name': obj.sender.last_name,

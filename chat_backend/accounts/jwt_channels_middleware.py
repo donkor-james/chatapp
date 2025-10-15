@@ -24,7 +24,6 @@ class JWTAuthMiddleware(BaseMiddleware):
         super().__init__(inner)
 
     async def __call__(self, scope, receive, send):
-        # Import Django modules inside the method to avoid import order issues
         from django.contrib.auth.models import AnonymousUser
         from rest_framework_simplejwt.tokens import UntypedToken, AccessToken
         from rest_framework_simplejwt.exceptions import InvalidToken, TokenError

@@ -1,16 +1,28 @@
 import React from "react";
 import { MessageCircle, Users, Bell, Settings, LogOut } from "lucide-react";
 
-const Sidebar = ({ activeView, onViewChange, unreadCount, onLogout }) => {
+const Sidebar = ({
+  activeView,
+  onViewChange,
+  unreadCount,
+  hasUnseenChats,
+  hasUnseenNotifications,
+  onLogout,
+}) => {
   const menuItems = [
     {
       id: "chats",
       icon: MessageCircle,
       label: "Chats",
-      badge: unreadCount > 0 ? unreadCount : null,
+      showDot: hasUnseenChats,
     },
     { id: "contacts", icon: Users, label: "Contacts" },
-    { id: "notifications", icon: Bell, label: "Notifications" },
+    {
+      id: "notifications",
+      icon: Bell,
+      label: "Notifications",
+      showDot: hasUnseenNotifications,
+    },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
 
@@ -34,10 +46,8 @@ const Sidebar = ({ activeView, onViewChange, unreadCount, onLogout }) => {
                 }`}
               >
                 <item.icon className="h-6 w-6" />
-                {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {item.badge}
-                  </span>
+                {item.showDot && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 rounded-full h-3 w-3 border-2 border-gray-900"></span>
                 )}
               </button>
             </li>

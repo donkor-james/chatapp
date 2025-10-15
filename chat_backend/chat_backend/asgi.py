@@ -1,4 +1,3 @@
-# chat_backend/asgi.py - VSCode-safe version
 from notifications.consumers import NotificationConsumer
 from chats.consumers import ChatConsumer
 from chats.user_chats_consumer import UserChatsConsumer
@@ -9,11 +8,8 @@ from django.core.asgi import get_asgi_application
 import os
 import django
 
-# CRITICAL: Set Django settings and initialize BEFORE any other imports
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_backend.settings')
 django.setup()
-
-# Now import everything else (VSCode can reorder these safely)
 
 # WebSocket URL patterns
 websocket_urlpatterns = [

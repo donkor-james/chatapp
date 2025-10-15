@@ -93,12 +93,58 @@ class CreateChatView(APIView):
                     role='member'
                 )
 
+            # Send real-time notification to all chat members about the new chat
+            self.send_new_chat_notifications(chat)
+
             return Response(
                 ChatSerializer(chat, context={'request': request}).data,
                 status=status.HTTP_201_CREATED
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def send_new_chat_notifications(self, chat):
+        """Send real-time notifications to all chat members about the new chat"""
+        try:
+            # Refresh the chat object with prefetched members
+            chat = Chat.objects.prefetch_related(
+                'members', 'chatmembership_set__user').get(id=chat.id)
+
+            # Get all chat members
+            members = ChatMembership.objects.filter(
+                chat=chat).select_related('user')
+
+            # Send notification to each member's user chat group
+            for membership in members:
+                # Create a mock request object for the specific user
+                class MockRequest:
+                    def __init__(self, user):
+                        self.user = user
+
+                mock_request = MockRequest(membership.user)
+                # Ensure user appears authenticated - try both property and callable
+                if hasattr(mock_request.user.is_authenticated, '__call__'):
+                    # Mock the callable
+                    mock_request.user.is_authenticated = lambda: True
+                else:
+                    # Set as property
+                    mock_request.user.is_authenticated = True
+
+                # Serialize chat data with proper context for this user
+                chat_data = ChatSerializer(
+                    chat, context={'request': mock_request}).data
+
+                user_group = f'user_chats_{membership.user.id}'
+                async_to_sync(channel_layer.group_send)(
+                    user_group,
+                    {
+                        'type': 'new_chat',
+                        'chat': chat_data
+                    }
+                )
+
+        except Exception as e:
+            print(f"Error sending new chat notifications: {str(e)}")
 
 
 class ChatDetailView(generics.RetrieveAPIView):
@@ -210,7 +256,7 @@ class MarkMessageReadView(APIView):
         chat = get_object_or_404(Chat, id=chat_id, members=request.user)
         message = get_object_or_404(Message, id=message_id, chat=chat)
 
-        from messages.models import MessageRead
+        from chat_messages.models import MessageRead
         MessageRead.objects.get_or_create(message=message, user=request.user)
 
         return Response({'message': 'Message marked as read'}, status=status.HTTP_200_OK)

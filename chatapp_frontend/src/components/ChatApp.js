@@ -27,6 +27,13 @@ const ChatApp = ({ activeView: propActiveView }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  // Red dot indicators for sidebar
+  const [hasUnseenChats, setHasUnseenChats] = useState(false);
+  const [hasUnseenNotifications, setHasUnseenNotifications] = useState(false);
+  // Track chats with unseen messages
+  const [chatsWithUnseenMessages, setChatsWithUnseenMessages] = useState(
+    new Set()
+  );
   // Determine activeView from route or prop
   const activeView =
     propActiveView ||
@@ -53,6 +60,10 @@ const ChatApp = ({ activeView: propActiveView }) => {
       console.log("Notification received:", data);
       if (data.type === "unread_count") {
         setUnreadCount(data.count);
+        // Set unseen notifications flag if there are unread notifications and not viewing notifications
+        if (data.count > 0 && activeView !== "notifications") {
+          setHasUnseenNotifications(true);
+        }
       }
     }, []),
     notificationConfig
@@ -78,6 +89,22 @@ const ChatApp = ({ activeView: propActiveView }) => {
         if (data.type === "message") {
           console.log("✅ Processing message:", data.message);
 
+          // Set unseen chats flag if not currently viewing chats
+          if (activeView !== "chats") {
+            setHasUnseenChats(true);
+          }
+
+          // Mark chat as having unseen messages if it's not the active chat or user is not viewing chats
+          if (
+            !activeChat ||
+            data.message.chat_id != activeChat.id ||
+            activeView !== "chats"
+          ) {
+            setChatsWithUnseenMessages(
+              (prev) => new Set([...prev, data.message.chat_id])
+            );
+          }
+
           // Only add to messages if it's for the currently active chat
           if (activeChat && data.message.chat_id == activeChat.id) {
             setMessages((prev) => {
@@ -100,6 +127,26 @@ const ChatApp = ({ activeView: propActiveView }) => {
                 : chat
             )
           );
+        } else if (data.type === "new_chat") {
+          console.log("✅ Processing new chat:", data.chat);
+
+          // Set unseen chats flag if not currently viewing chats
+          if (activeView !== "chats") {
+            setHasUnseenChats(true);
+          }
+
+          // Add the new chat to the chat list if it doesn't already exist
+          setChats((prevChats) => {
+            const chatExists = prevChats.some(
+              (chat) => chat.id === data.chat.id
+            );
+            if (chatExists) {
+              console.log("⚠️ Chat already exists in list, skipping");
+              return prevChats;
+            }
+            console.log("➕ Adding new chat to chat list");
+            return [data.chat, ...prevChats]; // Add to beginning of list
+          });
         } else {
           console.log("❓ Unknown message type:", data.type);
         }
@@ -112,6 +159,24 @@ const ChatApp = ({ activeView: propActiveView }) => {
     loadChats();
     loadUnreadCount();
   }, []);
+
+  // Clear red dots when user views the respective sections
+  useEffect(() => {
+    if (activeView === "chats") {
+      setHasUnseenChats(false);
+      // Also clear unseen messages for active chat when viewing chats
+      if (activeChat) {
+        setChatsWithUnseenMessages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(activeChat.id);
+          return newSet;
+        });
+      }
+    }
+    if (activeView === "notifications" || showNotifications) {
+      setHasUnseenNotifications(false);
+    }
+  }, [activeView, showNotifications, activeChat]);
 
   // Set activeChat based on chatId param
   useEffect(() => {
@@ -161,6 +226,12 @@ const ChatApp = ({ activeView: propActiveView }) => {
   };
 
   const handleChatSelect = (chat) => {
+    // Clear unseen status for this chat
+    setChatsWithUnseenMessages((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(chat.id);
+      return newSet;
+    });
     navigate(`/chats/${chat.id}`);
   };
 
@@ -229,7 +300,12 @@ const ChatApp = ({ activeView: propActiveView }) => {
   const renderMainContent = () => {
     switch (activeView) {
       case "contacts":
-        return <Contacts onClose={() => navigate("/chats")} />;
+        return (
+          <Contacts
+            onClose={() => navigate("/chats")}
+            onStartChat={handleContactSelect}
+          />
+        );
       case "chats":
       default:
         return (
@@ -240,6 +316,7 @@ const ChatApp = ({ activeView: propActiveView }) => {
               onChatSelect={handleChatSelect}
               onNewChat={handleNewChat}
               currentUser={user}
+              chatsWithUnseenMessages={chatsWithUnseenMessages}
             />
             <ChatWindow
               chat={activeChat}
@@ -258,6 +335,8 @@ const ChatApp = ({ activeView: propActiveView }) => {
         activeView={showNotifications ? "notifications" : activeView}
         onViewChange={handleSidebarViewChange}
         unreadCount={unreadCount}
+        hasUnseenChats={hasUnseenChats}
+        hasUnseenNotifications={hasUnseenNotifications}
         onLogout={logout}
       />
       {renderMainContent()}
