@@ -133,7 +133,7 @@ class EmailVerificationView(APIView):
                             "last_name": user.last_name,
                             "created_at": user.created_at,
                             "is_email_verified": user.is_email_verified,
-                            "two_factor_enabled": user.two_fator_enabled
+                            "two_factor_enabled": user.two_factor_enabled
                         },
                         "tokens": tokens
                     }, status=status.HTTP_200_OK)
