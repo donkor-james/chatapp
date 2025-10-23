@@ -1,0 +1,131 @@
+name: Deploy Chat App
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          cd chat_backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django tests
+        run: |
+          cd chat_backend
+          python manage.py test
+        env:
+          SECRET_KEY: test-secret-key
+          DEBUG: True
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install frontend dependencies
+        run: |
+          cd chatapp_frontend
+          npm install
+
+      - name: Run frontend tests
+        run: |
+          cd chatapp_frontend
+          npm test -- --coverage --watchAll=false
+
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Backend Image
+        run: |
+          docker build -t chatapp-backend:latest ./chat_backend
+
+      - name: Build Frontend Image
+        run: |
+          docker build -t chatapp-frontend:latest ./chatapp_frontend
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Oracle Cloud
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USERNAME }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script: |
+            cd /home/${{ secrets.ORACLE_USERNAME }}/chatapp
+
+            git pull origin main
+
+            docker-compose down
+
+            docker system prune -af
+
+            docker-compose up -d --build
+
+            docker-compose exec -T backend python manage.py migrate
+
+            docker-compose exec -T backend python manage.py collectstatic --noinput
+
+            docker-compose ps
+
+            echo "Deployment to Oracle complete!"
+
+      - name: Verify Deployment
+        run: |
+          echo "Application deployed successfully!"
+          echo "Check status at: http://${{ secrets.ORACLE_HOST }}"
+
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [test, build, deploy]
+    if: always()
+
+    steps:
+    - name: Send Notification
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deployment succeeded!"
+        else
+          echo "❌ Deployment failed!"
+        fi
