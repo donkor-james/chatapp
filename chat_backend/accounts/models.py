@@ -40,15 +40,12 @@ class User(AbstractUser):
         return self.two_factor_code
 
     def is_2fa_code_valid(self, code):
-        "Verify code"
         if not self.two_factor_code or self.two_factor_code != code:
             return False
-
         if self.two_factor_code_created_at:
             time_diff = timezone.now() - self.two_factor_code_created_at
-            if time_diff > 300:
+            if time_diff.total_seconds() > 300:   # ← was: if time_diff > 300
                 return False
-
         return True
 
     def clear_2fa_code(self):

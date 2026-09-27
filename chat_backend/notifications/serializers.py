@@ -14,7 +14,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     def get_sender(self, obj):
         if obj.sender:
             return {
-                'id': obj.sender.id,
+                'id': str(obj.sender.id),
                 'username': obj.sender.username,
                 'first_name': obj.sender.first_name,
                 'last_name': obj.sender.last_name,

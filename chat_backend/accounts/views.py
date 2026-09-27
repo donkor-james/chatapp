@@ -168,7 +168,7 @@ class PasswordResetView(APIView):
             data=request.data, context={'request': request})
 
         if serializer.is_valid():
-            user = self.context.get("user")
+            user = serializer.context.get("user")
 
             if user:
                 user.password_reset_token = secrets.token_urlsafe(32)
@@ -190,29 +190,22 @@ class PasswordResetConfirmView(APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-
         if serializer.is_valid():
             token = serializer.validated_data.get('token')
-            user = User.objects.get(password_reset_token=token)
-
             try:
-                time_diff = timezone.now() - user.password_reset_token
-                if time_diff > 600:
-                    return Response({'error': 'Reset token has expired'}, status=status.HTTP_400_BAD_REQUEST)
-
-                user.set_password(
-                    serializer.validated_data.get('new_password'))
+                user = User.objects.get(password_reset_token=token)
+                time_diff = timezone.now() - user.password_reset_sent_at   # ← fixed field
+                if time_diff.total_seconds() > 3600:
+                    return Response({'error': 'Reset token has expired'}, status=400)
+                user.set_password(serializer.validated_data.get(
+                    'password'))  # ← fixed key
                 user.password_reset_token = None
                 user.password_reset_sent_at = None
                 user.save()
-
-                return Response({
-                    'message': 'Password has been reset successfully',
-                }, status=status.HTTP_200_OK)
-
+                return Response({'message': 'Password has been reset successfully.'})
             except User.DoesNotExist:
-                return Response({'error': 'Invalid reset token'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Invalid reset token'}, status=404)
+        return Response(serializer.errors, status=400)
 
 
 class ResendEmailVerificationView(APIView):
