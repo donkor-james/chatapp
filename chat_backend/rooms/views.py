@@ -11,10 +11,11 @@ from rest_framework.views import APIView
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.core.serializers.json import DjangoJSONEncoder
-from .models import Room, RoomMembership, DirectMessage, RoomInvite
+from .models import Room, RoomMembership, RoomInvite
+from conversations.models import DirectMessage
+from conversations.serializers import DirectMessageSerializer, SendMessageSerializer
 from .serializers import (
     RoomSerializer, CreateRoomSerializer,
-    DirectMessageSerializer, SendDirectMessageSerializer,
 )
 from notifications.models import Notification
 
@@ -313,39 +314,6 @@ class RoomDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Room.objects.prefetch_related('memberships__user').select_related('host')
-
-
-class DirectMessageListView(generics.ListAPIView):
-    """
-    GET /api/rooms/<room_id>/dm/<user_id>/
-    Retrieve the DM thread between the requesting user and another member in this room.
-    """
-    serializer_class = DirectMessageSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        room_id = self.kwargs['room_id']
-        other_user_id = self.kwargs['user_id']
-        user = self.request.user
-
-        # Ensure both users are active members
-        room = get_object_or_404(Room, id=room_id)
-        if not room.memberships.filter(user=user, is_active=True).exists():
-            return DirectMessage.objects.none()
-
-        from django.db.models import Q
-        qs = DirectMessage.objects.filter(
-            room_id=room_id
-        ).filter(
-            Q(sender=user, recipient_id=other_user_id) |
-            Q(sender_id=other_user_id, recipient=user)
-        ).select_related('sender', 'recipient')
-
-        # Mark incoming as read
-        qs.filter(recipient=user, read_at__isnull=True).update(
-            read_at=timezone.now()
-        )
-        return qs
 
 
 class StartDMFromRoomView(APIView):

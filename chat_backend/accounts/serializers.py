@@ -66,7 +66,14 @@ class UserLoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'password',
+            'is_active', 'is_staff', 'is_superuser', 'date_joined', 'last_login',
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
 
 
 class PasswordChangeSerializer(serializers.Serializer):

@@ -151,12 +151,70 @@ class SendMessageView(APIView):
 
         message_data = DirectMessageSerializer(message).data
 
+        # Convert to plain dict so json.dumps in the consumer can handle it
+        from rest_framework.renderers import JSONRenderer
+        import json
+        message_dict = json.loads(JSONRenderer().render(message_data))
+
         async_to_sync(channel_layer.group_send)(
             _conversation_group(str(conversation_id)),
             {
                 'type': 'new_message',
-                'message': message_data,
+                'message': message_dict,
             },
         )
 
         return Response(message_data, status=status.HTTP_201_CREATED)
+
+
+class DirectMessageDetailView(APIView):
+    """
+    PATCH /api/conversations/<conversation_id>/messages/<message_id>/ — edit
+    DELETE /api/conversations/<conversation_id>/messages/<message_id>/ — delete
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, conversation_id, message_id, user):
+        msg = get_object_or_404(
+            DirectMessage,
+            id=message_id,
+            conversation_id=conversation_id
+        )
+        if msg.sender != user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied
+        return msg
+
+    def _broadcast(self, conversation_id, event_type, message_data):
+        from rest_framework.renderers import JSONRenderer
+        import json
+        message_dict = json.loads(JSONRenderer().render(message_data))
+        async_to_sync(channel_layer.group_send)(
+            _conversation_group(str(conversation_id)),
+            {'type': event_type, 'message': message_dict}
+        )
+
+    def patch(self, request, conversation_id, message_id):
+        msg = self.get_object(conversation_id, message_id, request.user)
+        content = request.data.get('content', '').strip()
+
+        if not content:
+            return Response({'error': 'Content cannot be empty.'}, status=400)
+
+        msg.content = content
+        msg.is_edited = True
+        msg.save(update_fields=['content', 'is_edited'])
+
+        message_data = DirectMessageSerializer(msg).data
+        self._broadcast(conversation_id, 'message_updated', message_data)
+        return Response(message_data)
+
+    def delete(self, request, conversation_id, message_id):
+        msg = self.get_object(conversation_id, message_id, request.user)
+        msg.is_deleted = True
+        msg.content = ''
+        msg.save(update_fields=['is_deleted', 'content'])
+
+        message_data = DirectMessageSerializer(msg).data
+        self._broadcast(conversation_id, 'message_deleted', message_data)
+        return Response(message_data, status=status.HTTP_200_OK)

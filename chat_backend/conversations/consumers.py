@@ -63,11 +63,21 @@ class ConversationConsumer(AsyncWebsocketConsumer):
             },
         )
 
-    # ── Group event handlers ──────────────────────────────────────────────────
-
     async def new_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'message',
+            'message': event['message'],
+        }))
+
+    async def message_updated(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message_updated',
+            'message': event['message'],
+        }))
+
+    async def message_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message_deleted',
             'message': event['message'],
         }))
 

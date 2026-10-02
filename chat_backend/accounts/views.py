@@ -78,7 +78,7 @@ class LoginView(APIView):
                     "access_token": tokens["access"],
                     "refresh_token": tokens["refresh"],
                     "user": {
-                        "user_id": user.id,
+                        "id": user.id,
                         "email": user.email,
                         "username": user.username,
                         "first_name": user.first_name,
@@ -126,7 +126,7 @@ class EmailVerificationView(APIView):
                     return Response({
                         "message": "Email verification successful.",
                         "user": {
-                            "user_id": user.id,
+                            "id": user.id,
                             "email": user.email,
                             "username": user.username,
                             "first_name": user.first_name,
@@ -272,7 +272,7 @@ class Verify2FAView(APIView):
                         "access_token": tokens["access"],  # Make it consistent
                         "refresh_token": tokens["refresh"],
                         "user": {
-                            "user_id": user.id,
+                            "id": user.id,
                             "email": user.email,
                             "username": user.username,
                             "first_name": user.first_name,

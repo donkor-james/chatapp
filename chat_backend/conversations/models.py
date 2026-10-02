@@ -67,6 +67,8 @@ class DirectMessage(models.Model):
         related_name='sent_direct_messages',
     )
     content = models.TextField()
+    is_edited = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
 

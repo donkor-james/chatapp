@@ -17,8 +17,6 @@ urlpatterns = [
     path('<uuid:room_id>/end/', views.EndRoomView.as_view(), name='end_room'),
     path('<uuid:room_id>/dm-with/<uuid:user_id>/',
          views.StartDMFromRoomView.as_view(), name='start_dm'),
-    path('<uuid:room_id>/dm/<uuid:user_id>/',
-         views.DirectMessageListView.as_view(), name='dm_thread'),
     path('join/<str:invite_token>/',
          views.JoinRoomViaLinkView.as_view(), name='join_room'),
 ]

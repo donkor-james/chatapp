@@ -96,34 +96,34 @@ class RoomMessage(models.Model):
         return f'{self.sender.username}: {self.content[:60]}'
 
 
-class DirectMessage(models.Model):
-    """
-    Private message between two members of the same room session.
-    Scoped to a room so the conversation is contextual.
-    """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    room = models.ForeignKey(
-        Room, on_delete=models.CASCADE, related_name='direct_messages'
-    )
-    sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='sent_dms',
-    )
-    recipient = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='received_dms',
-    )
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    read_at = models.DateTimeField(null=True, blank=True)
+# class DirectMessage(models.Model):
+#     """
+#     Private message between two members of the same room session.
+#     Scoped to a room so the conversation is contextual.
+#     """
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     room = models.ForeignKey(
+#         Room, on_delete=models.CASCADE, related_name='direct_messages'
+#     )
+#     sender = models.ForeignKey(
+#         settings.AUTH_USER_MODEL,
+#         on_delete=models.CASCADE,
+#         related_name='sent_dms',
+#     )
+#     recipient = models.ForeignKey(
+#         settings.AUTH_USER_MODEL,
+#         on_delete=models.CASCADE,
+#         related_name='received_dms',
+#     )
+#     content = models.TextField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     read_at = models.DateTimeField(null=True, blank=True)
 
-    class Meta:
-        ordering = ['created_at']
+#     class Meta:
+#         ordering = ['created_at']
 
-    def __str__(self):
-        return f'DM from {self.sender.username} to {self.recipient.username}'
+#     def __str__(self):
+#         return f'DM from {self.sender.username} to {self.recipient.username}'
 
 
 class RoomInvite(models.Model):

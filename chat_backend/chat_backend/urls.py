@@ -6,6 +6,6 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/rooms/', include('rooms.urls')),
     path('api/conversations/', include('conversations.urls')),
-    path('api/follows/', include('follows.urls')),
+    path('api/following/', include('follows.urls')),
     path('api/notifications/', include('notifications.urls')),
 ]

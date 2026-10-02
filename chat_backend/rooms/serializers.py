@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.conf import settings
-from .models import Room, RoomMembership, RoomMessage, DirectMessage, RoomInvite
+from .models import Room, RoomMembership, RoomMessage, RoomInvite
+from conversations.models import DirectMessage
 
 
 class MemberSerializer(serializers.ModelSerializer):
@@ -68,7 +69,8 @@ class RoomMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RoomMessage
-        fields = ('id', 'room', 'sender', 'content', 'created_at')
+        fields = ('id', 'room', 'sender', 'content',
+                  'created_at', 'is_edited', 'is_deleted')
         read_only_fields = ('id', 'created_at', 'sender', 'room')
 
     def get_sender(self, obj):
@@ -78,28 +80,3 @@ class RoomMessageSerializer(serializers.ModelSerializer):
             'first_name': obj.sender.first_name,
             'last_name': obj.sender.last_name,
         }
-
-
-class DirectMessageSerializer(serializers.ModelSerializer):
-    sender = serializers.SerializerMethodField()
-    recipient_id = serializers.CharField(source='recipient.id')
-
-    class Meta:
-        model = DirectMessage
-        fields = ('id', 'room', 'sender', 'recipient_id',
-                  'content', 'created_at', 'read_at')
-        read_only_fields = ('id', 'created_at', 'read_at')
-
-    def get_sender(self, obj):
-        return {
-            'id': str(obj.sender.id),
-            'username': obj.sender.username,
-        }
-
-
-class SendDirectMessageSerializer(serializers.Serializer):
-    recipient_id = serializers.UUIDField()
-    content = serializers.CharField(min_length=1, max_length=4000)
-
-    def validate_content(self, value):
-        return value.strip()
