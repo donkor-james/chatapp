@@ -36,7 +36,6 @@ class RegisterView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
-            print(user.__dict__)
 
             # send verification email
             send_verification_email(user)
