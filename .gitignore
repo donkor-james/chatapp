@@ -10,4 +10,18 @@ chatapp_backend/*.pyc
 chatapp_backend/sqlite3
 */__pycache__
 
+chatapp_backend/.env
+
+# Environment files
 .env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.pyc
+myenv/
+
+# Node
+node_modules/
+build/

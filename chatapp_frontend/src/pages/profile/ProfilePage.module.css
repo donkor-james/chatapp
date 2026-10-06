@@ -1,0 +1,28 @@
+.page { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.scroll { flex: 1; overflow-y: auto; padding: 32px 28px; }
+.content { max-width: 480px; }
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+.name { font-size: 20px; font-weight: 600; }
+.handle { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+
+.form { display: flex; flex-direction: column; }
+.row { display: flex; gap: 14px; }
+.row > * { flex: 1; }
+
+.fields { display: flex; flex-direction: column; gap: 20px; }
+.field {}
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.fieldValue { font-size: 14px; color: var(--text-2); }

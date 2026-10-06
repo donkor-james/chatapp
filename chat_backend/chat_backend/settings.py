@@ -110,7 +110,6 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=14),
 }
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
@@ -163,6 +162,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # only wide-open in dev
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ALLOWED_ORIGINS', 'http://localhost:3000'
 ).split(',')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 ROOT_URLCONF = 'chat_backend.urls'
 

@@ -1,22 +1,99 @@
-import React, { useContext } from "react";
-import { AuthContext } from "./components/AuthProvider";
-import ChatApp from "./components/ChatApp";
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import "./styles/globals.css";
+import useAuthStore from "./store/authStore";
+import Layout from "./components/layout/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import DiscoverPage from "./pages/rooms/DiscoverPage";
+import RoomPage from "./pages/rooms/RoomPage";
+import JoinRoomPage from "./pages/rooms/JoinRoomPage";
+import MessagesPage from "./pages/conversations/MessagesPage";
+import PeoplePage from "./pages/people/PeoplePage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
-const App = () => {
-  const { loading } = useContext(AuthContext);
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/join/:token"
+        element={
+          <ProtectedRoute>
+            <JoinRoomPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <DiscoverPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rooms/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <RoomPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <MessagesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/people"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PeoplePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+export default function App() {
+  const { init, isHydrated } = useAuthStore();
+
+  useEffect(() => {
+    init();
+  }, [init]);
+
+  if (!isHydrated) {
+    return null;
   }
-
-  return <ChatApp />;
-};
-
-export default App;
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
