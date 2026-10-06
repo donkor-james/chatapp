@@ -1,71 +1,53 @@
-from django.core.mail import send_mail
+import resend
 from django.conf import settings
 
+resend.api_key = settings.RESEND_API_KEY
 frontend = settings.FRONTEND_URL
-sender = settings.EMAIL_HOST_USER
 
 
 def send_verification_email(user):
-    subject = "Verify your email address"
-    message = f"""
-    Hi {user.first_name}, 
-
-    click on the link to verify email address:
-    {frontend}/verify-email?token={user.email_verification_token}
-
-    This link will expire in 24 hours
-    Best regards
-    """
-
-    send_mail(subject=subject,
-              message=message,
-              from_email=sender,
-              recipient_list=[user.email],
-              fail_silently=False
-              )
+    resend.Emails.send({
+        "from": settings.DEFAULT_FROM_EMAIL,
+        "to": [user.email],
+        "subject": "Verify your email address",
+        "html": f"""
+        <p>Hi {user.first_name},</p>
+        <p>Click the link below to verify your email address:</p>
+        <p><a href="{frontend}/verify-email?token={user.email_verification_token}">
+            Verify Email
+        </a></p>
+        <p>This link expires in 24 hours.</p>
+        <p>Best regards</p>
+        """,
+    })
 
 
 def send_2FA_code_email(user):
-    subject = "Your Login Verification Code"
-    message = f"""
-    Hi {user.first_name},
-
-    Your Verification Code is: {user.two_factor_code}
-
-    This code will expire in 5 minutes.
-    If you didn't request this code, please ignore this
-
-    Best regards
-    """
-
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=sender,
-        recipient_list=[user.email],
-        fail_silently=False
-    )
+    resend.Emails.send({
+        "from": settings.DEFAULT_FROM_EMAIL,
+        "to": [user.email],
+        "subject": "Your Login Verification Code",
+        "html": f"""
+        <p>Hi {user.first_name},</p>
+        <p>Your verification code is: <strong>{user.two_factor_code}</strong></p>
+        <p>This code expires in 5 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        """,
+    })
 
 
 def send_reset_password_email(user):
-    subject = "Reset Password Request"
-    message = f"""
-    Hi {user.first_name},
-
-    You requested to reset password. Please click on the link below to reset password:
-    {frontend}/reset-password?token={user.reset_password_token}
-
-    Link will expire in an hour.
-
-    If you didn't request this reset, please ignore this email.
-
-    Best regards
-    """
-
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=sender,
-        recipient_list=[user.email],
-        fail_silently=False
-    )
+    resend.Emails.send({
+        "from": settings.DEFAULT_FROM_EMAIL,
+        "to": [user.email],
+        "subject": "Reset Your Password",
+        "html": f"""
+        <p>Hi {user.first_name},</p>
+        <p>Click the link below to reset your password:</p>
+        <p><a href="{frontend}/reset-password?token={user.password_reset_token}">
+            Reset Password
+        </a></p>
+        <p>This link expires in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+        """,
+    })
