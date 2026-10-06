@@ -1,10 +1,21 @@
 import random
 import secrets
 import uuid
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils import timezone
 # Create your models here.
+
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        # Automatically use the email prefix or full email as the username
+        username = extra_fields.get('username') or email.split('@')[0]
+
+        return self._create_user(username, email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -24,6 +35,8 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+
+    objects = CustomUserManager()
 
     def generate_email_verification_token(self):
         """ Generate email verification code """
