@@ -12,6 +12,7 @@ import JoinRoomPage from "./pages/rooms/JoinRoomPage";
 import MessagesPage from "./pages/conversations/MessagesPage";
 import PeoplePage from "./pages/people/PeoplePage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
 
 function AppRoutes() {
   return (
@@ -72,6 +73,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <NotificationsPage />
             </Layout>
           </ProtectedRoute>
         }

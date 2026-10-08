@@ -1,14 +1,22 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/authStore";
 import useConversationsStore from "../../store/conversationsStore";
 import useRoomsStore from "../../store/roomsStore";
+import useNotificationsStore from "../../store/notificationsStore";
+import { useWebSocket } from "../../hooks/useWebSocket";
 import { Avatar, Badge } from "../ui";
 import styles from "./Layout.module.css";
 
 const NAV = [
   { to: "/", icon: "⬡", label: "Discover" },
-  { to: "/messages", icon: "✉", label: "Messages", badge: true },
+  { to: "/messages", icon: "✉", label: "Messages", badge: "messages" },
+  {
+    to: "/notifications",
+    icon: "🔔",
+    label: "Notifications",
+    badge: "notifications",
+  },
   { to: "/people", icon: "👥", label: "People" },
   { to: "/profile", icon: "◯", label: "Profile" },
 ];
@@ -23,14 +31,35 @@ export default function Layout({ children }) {
   );
   const { rooms, activeRoom, setActiveRoom, fetchRooms } = useRoomsStore();
 
+  const unreadNotifications = useNotificationsStore(
+    (s) => s.notifications.filter((n) => !n.is_read).length,
+  );
+  const fetchNotifications = useNotificationsStore((s) => s.fetchNotifications);
+  const receiveNotification = useNotificationsStore(
+    (s) => s.receiveNotification,
+  );
+
   useEffect(() => {
     fetchRooms();
-  }, [fetchRooms]);
+    fetchNotifications();
+  }, [fetchRooms, fetchNotifications]);
+
+  const onNotificationMessage = useCallback(
+    (data) => {
+      if (data.type === "notification") receiveNotification(data.notification);
+    },
+    [receiveNotification],
+  );
+  useWebSocket("notifications/", { onMessage: onNotificationMessage });
+
+  const badgeCounts = {
+    messages: totalUnread,
+    notifications: unreadNotifications,
+  };
 
   const myRooms = rooms.filter(
     (r) => r.status === "active" && r.members?.some((m) => m.id === user?.id),
   );
-
   const fullName = user ? `${user.first_name} ${user.last_name}` : "";
 
   const handleLogout = async () => {
@@ -58,7 +87,9 @@ export default function Layout({ children }) {
             >
               <span className={styles.navIcon}>{icon}</span>
               <span className={styles.navLabel}>{label}</span>
-              {badge && totalUnread > 0 && <Badge count={totalUnread} />}
+              {badge && badgeCounts[badge] > 0 && (
+                <Badge count={badgeCounts[badge]} />
+              )}
             </NavLink>
           ))}
         </nav>

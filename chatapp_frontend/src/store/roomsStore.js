@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { roomsAPI } from '../api/services';
+import { create } from "zustand";
+import { roomsAPI } from "../api/services";
 
 const useRoomsStore = create((set, get) => ({
   rooms: [],
@@ -38,7 +38,7 @@ const useRoomsStore = create((set, get) => ({
       }));
       return { data };
     } catch (err) {
-      return { error: err.response?.data?.error || 'Could not join room.' };
+      return { error: err.response?.data?.error || "Could not join room." };
     }
   },
 
@@ -60,7 +60,7 @@ const useRoomsStore = create((set, get) => ({
       await roomsAPI.end(roomId);
       set((s) => ({
         rooms: s.rooms.map((r) =>
-          r.id === roomId ? { ...r, status: 'ended' } : r
+          r.id === roomId ? { ...r, status: "ended" } : r,
         ),
         activeRoom: s.activeRoom?.id === roomId ? null : s.activeRoom,
       }));
@@ -79,16 +79,26 @@ const useRoomsStore = create((set, get) => ({
         r.id === roomId
           ? {
               ...r,
-              members: [...(r.members || []), { user, role: 'member', joined_at: new Date().toISOString() }],
+              members: [
+                ...(r.members || []),
+                {
+                  ...user,
+                  role: "member",
+                  joined_at: new Date().toISOString(),
+                },
+              ],
               member_count: (r.member_count || 0) + 1,
             }
-          : r
+          : r,
       ),
       activeRoom:
         s.activeRoom?.id === roomId
           ? {
               ...s.activeRoom,
-              members: [...(s.activeRoom.members || []), { user, role: 'member', joined_at: new Date().toISOString() }],
+              members: [
+                ...(s.activeRoom.members || []),
+                { user, role: "member", joined_at: new Date().toISOString() },
+              ],
               member_count: (s.activeRoom.member_count || 0) + 1,
             }
           : s.activeRoom,
@@ -104,13 +114,15 @@ const useRoomsStore = create((set, get) => ({
               members: (r.members || []).filter((m) => m.user.id !== userId),
               member_count: Math.max(0, (r.member_count || 1) - 1),
             }
-          : r
+          : r,
       ),
       activeRoom:
         s.activeRoom?.id === roomId
           ? {
               ...s.activeRoom,
-              members: (s.activeRoom.members || []).filter((m) => m.user.id !== userId),
+              members: (s.activeRoom.members || []).filter(
+                (m) => m.user.id !== userId,
+              ),
               member_count: Math.max(0, (s.activeRoom.member_count || 1) - 1),
             }
           : s.activeRoom,
@@ -120,11 +132,11 @@ const useRoomsStore = create((set, get) => ({
   handleRoomEnded: (roomId) => {
     set((s) => ({
       rooms: s.rooms.map((r) =>
-        r.id === roomId ? { ...r, status: 'ended' } : r
+        r.id === roomId ? { ...r, status: "ended" } : r,
       ),
       activeRoom:
         s.activeRoom?.id === roomId
-          ? { ...s.activeRoom, status: 'ended' }
+          ? { ...s.activeRoom, status: "ended" }
           : s.activeRoom,
     }));
   },
