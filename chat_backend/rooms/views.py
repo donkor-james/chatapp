@@ -1,23 +1,26 @@
-import json
-from .serializers import RoomMessageSerializer
-from .models import RoomMessage
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from django.db import transaction
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from django.core.serializers.json import DjangoJSONEncoder
-from .models import Room, RoomMembership, RoomInvite
-from conversations.models import DirectMessage
-from conversations.serializers import DirectMessageSerializer, SendMessageSerializer
+from notifications.models import Notification
 from .serializers import (
     RoomSerializer, CreateRoomSerializer,
 )
-from notifications.models import Notification
+from conversations.serializers import DirectMessageSerializer, SendMessageSerializer
+from conversations.models import DirectMessage
+from .models import Room, RoomMembership, RoomInvite
+from django.core.serializers.json import DjangoJSONEncoder
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, status
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from .models import RoomMessage
+from .serializers import RoomMessageSerializer
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 channel_layer = get_channel_layer()
 
@@ -101,20 +104,25 @@ class CreateRoomView(APIView):
                 data={'room_id': str(room.id),
                       'invite_token': room.invite_token},
             )
-            _notify_user(user.id, {
-                'id': str(notif.id),
-                'title': notif.title,
-                'message': notif.message,
-                'notification_type': notif.notification_type,
-                'data': notif.data,
-                'created_at': notif.created_at.isoformat(),
-                'sender': {
-                    'id': str(inviter.id),
-                    'username': inviter.username,
-                    'first_name': inviter.first_name,
-                    'last_name': inviter.last_name,
-                },
-            })
+
+            try:
+                _notify_user(user.id, {
+                    'id': str(notif.id),
+                    'title': notif.title,
+                    'message': notif.message,
+                    'notification_type': notif.notification_type,
+                    'data': notif.data,
+                    'created_at': notif.created_at.isoformat(),
+                    'sender': {
+                        'id': str(inviter.id),
+                        'username': inviter.username,
+                        'first_name': inviter.first_name,
+                        'last_name': inviter.last_name,
+                    },
+                })
+            except Exception:
+                # The notification is saved; only the live push failed
+                logger.exception('Could not push invite notification')
 
 
 class JoinRoomViaLinkView(APIView):
