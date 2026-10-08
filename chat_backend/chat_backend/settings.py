@@ -68,16 +68,16 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [REDIS_URL],
-            "symmetric_encryption_keys": [
-                os.environ.get("SECRET_KEY")
-            ],
-            "brpop_timeout": 5,
+            # Options passed to underlying redis-py client:
             "redis_connect_params": {
                 "socket_timeout": 15,
                 "socket_connect_timeout": 15,
                 "socket_keepalive": True,
                 "health_check_interval": 10,
             },
+            # Optional Channels-specific parameters at top level:
+            "capacity": 1500,
+            "expiry": 60,
         },
     },
 }
