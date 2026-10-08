@@ -59,14 +59,32 @@ INSTALLED_APPS = [
 # Channels
 ASGI_APPLICATION = 'chat_backend.asgi.application'
 
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")
+
+IS_SECURE_REDIS = REDIS_URL.startswith("rediss://")
+
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/0')],
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+            "symmetric_encryption_keys": [
+                os.environ.get("SECRET_KEY")
+            ],
+            "brpop_timeout": 5,
+            "redis_connect_params": {
+                "socket_timeout": 15,
+                "socket_connect_timeout": 15,
+                "socket_keepalive": True,
+                "health_check_interval": 10,
+            },
         },
     },
 }
+
+# If using rediss:// (TLS) or connecting to external Redis
+if IS_SECURE_REDIS:
+    CHANNEL_LAYERS["default"]["CONFIG"]["ssl_cert_reqs"] = None
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
