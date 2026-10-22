@@ -1,17 +1,21 @@
+import secrets
 from rest_framework.test import APITestCase
 from rest_framework import status
 from accounts.models import User
 from .models import DirectConversation, DirectMessage
 
+# Generated on every run, so no password literal is committed
+TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
+
 
 class ConversationTests(APITestCase):
     def setUp(self):
         self.alice = User.objects.create_user(
-            email='alice@example.com', username='alice', password='Pass123!',
+            email='alice@example.com', username='alice', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.bob = User.objects.create_user(
-            email='bob@example.com', username='bob', password='Pass123!',
+            email='bob@example.com', username='bob', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.client.force_authenticate(user=self.alice)
@@ -46,15 +50,15 @@ class ConversationTests(APITestCase):
 class DirectMessagePermissionTests(APITestCase):
     def setUp(self):
         self.alice = User.objects.create_user(
-            email='alice@example.com', username='alice', password='Pass123!',
+            email='alice@example.com', username='alice', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.bob = User.objects.create_user(
-            email='bob@example.com', username='bob', password='Pass123!',
+            email='bob@example.com', username='bob', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.stranger = User.objects.create_user(
-            email='stranger@example.com', username='stranger', password='Pass123!',
+            email='stranger@example.com', username='stranger', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.conversation, _ = DirectConversation.get_or_create_for(
