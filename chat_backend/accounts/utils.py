@@ -5,8 +5,14 @@ resend.api_key = settings.RESEND_API_KEY
 frontend = settings.FRONTEND_URL
 
 
+def _send_email(payload):
+    if not settings.RESEND_API_KEY:
+        return
+    resend.Emails.send(payload)
+
+
 def send_verification_email(user):
-    resend.Emails.send({
+    _send_email({
         "from": settings.DEFAULT_FROM_EMAIL,
         "to": [user.email],
         "subject": "Verify your email address",
@@ -23,7 +29,7 @@ def send_verification_email(user):
 
 
 def send_2FA_code_email(user):
-    resend.Emails.send({
+    _send_email({
         "from": settings.DEFAULT_FROM_EMAIL,
         "to": [user.email],
         "subject": "Your Login Verification Code",
@@ -37,7 +43,7 @@ def send_2FA_code_email(user):
 
 
 def send_reset_password_email(user):
-    resend.Emails.send({
+    _send_email({
         "from": settings.DEFAULT_FROM_EMAIL,
         "to": [user.email],
         "subject": "Reset Your Password",
