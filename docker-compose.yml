@@ -49,7 +49,7 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DB_NAME=${DB_NAME:-chatapp_db}
       - DB_USER=${DB_USER:-chatapp_user}
-      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_PASSWORD=${DB_PASSWORD:-securepassword}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_HOST=redis
