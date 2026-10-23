@@ -1,13 +1,17 @@
+import secrets
 from rest_framework.test import APITestCase
 from rest_framework import status
 from accounts.models import User
 from .models import Room, RoomMembership, RoomMessage
 
+# Generated on every run, so no password literal is committed
+TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
+
 
 class RoomCreationTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email='host@example.com', username='host', password='Pass123!',
+            email='host@example.com', username='host', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.client.force_authenticate(user=self.user)
@@ -31,11 +35,11 @@ class RoomCreationTests(APITestCase):
 class RoomMessagePermissionTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
-            email='owner@example.com', username='owner', password='Pass123!',
+            email='owner@example.com', username='owner', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.intruder = User.objects.create_user(
-            email='intruder@example.com', username='intruder', password='Pass123!',
+            email='intruder@example.com', username='intruder', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.room = Room.objects.create(
@@ -95,7 +99,7 @@ class RoomMessagePermissionTests(APITestCase):
 
     def test_non_member_cannot_view_messages(self):
         outsider = User.objects.create_user(
-            email='outsider@example.com', username='outsider', password='Pass123!',
+            email='outsider@example.com', username='outsider', password=TEST_PASSWORD,
             is_email_verified=True,
         )
         self.client.force_authenticate(user=outsider)

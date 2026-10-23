@@ -1,13 +1,16 @@
-# follows/tests.py
+import secrets
 from rest_framework.test import APITestCase
 from rest_framework import status
 from accounts.models import User
 from .models import Follow, Block
 
+# Generated on every run, so no password literal is committed
+TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
+
 
 def make_user(email, username):
     user = User.objects.create_user(
-        email=email, username=username, password='Pass123!')
+        email=email, username=username, password=TEST_PASSWORD)
     user.is_email_verified = True
     user.save()
     return user
