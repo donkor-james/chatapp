@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+import sys
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -63,24 +64,29 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")
 
 IS_SECURE_REDIS = REDIS_URL.startswith("rediss://")
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": REDIS_URL,
-                    "socket_timeout": 15,
-                    "socket_connect_timeout": 15,
-                    "socket_keepalive": True,
-                    "health_check_interval": 10,
-                }
-            ],
-            "capacity": 1500,
-            "expiry": 60,
+if 'test' in sys.argv:
+    CHANNEL_LAYERS = {
+        'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [
+                    {
+                        "address": REDIS_URL,
+                        "socket_timeout": 15,
+                        "socket_connect_timeout": 15,
+                        "socket_keepalive": True,
+                        "health_check_interval": 10,
+                    }
+                ],
+                "capacity": 1500,
+                "expiry": 60,
+            },
         },
-    },
-}
+    }
 
 # If using rediss:// (TLS) or connecting to external Redis
 if IS_SECURE_REDIS:
