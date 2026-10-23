@@ -1,3 +1,4 @@
+import secrets
 from django.test import TestCase
 from django.test import override_settings
 from rest_framework.test import APITestCase
@@ -5,6 +6,8 @@ from rest_framework import status
 from unittest.mock import patch
 from .models import User
 from .utils import send_verification_email
+
+TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
 
 
 class RegistrationTests(APITestCase):
