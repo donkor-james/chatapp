@@ -1,10 +1,12 @@
+import secrets
 from django.test import TestCase
+from django.test import override_settings
 from rest_framework.test import APITestCase
 from rest_framework import status
+from unittest.mock import patch
 from .models import User
-import secrets
+from .utils import send_verification_email
 
-# Generated on every run, so no password literal is committed
 TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
 
 
@@ -104,3 +106,17 @@ class ProfileTests(APITestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get('/api/auth/profile/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class EmailUtilsTests(TestCase):
+    @override_settings(RESEND_API_KEY=None)
+    @patch('accounts.utils.resend.Emails.send')
+    def test_send_verification_email_skips_external_call_without_api_key(self, mock_send):
+        user = User.objects.create_user(
+            email='dave@example.com',
+            username='dave',
+            first_name='Dave',
+            password='Pass123!'
+        )
+        send_verification_email(user)
+        mock_send.assert_not_called()
