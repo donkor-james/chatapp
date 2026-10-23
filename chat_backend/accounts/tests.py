@@ -1,14 +1,28 @@
+import secrets
+from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import User
-import secrets
 
 # Generated on every run, so no password literal is committed
 TEST_PASSWORD = f"{secrets.token_urlsafe(12)}Aa1!"
 
 
-class RegistrationTests(APITestCase):
+class MockedEmailTestCase(APITestCase):
+    """Keeps tests from calling the real Resend API."""
+
+    def setUp(self):
+        super().setUp()
+        for name in ('send_verification_email',
+                     'send_2FA_code_email',
+                     'send_reset_password_email'):
+            patcher = patch(f'accounts.views.{name}')
+            setattr(self, f'mock_{name}', patcher.start())
+            self.addCleanup(patcher.stop)
+
+
+class RegistrationTests(MockedEmailTestCase):
     def setUp(self):
         self.url = '/api/auth/register/'
         self.payload = {
@@ -40,7 +54,7 @@ class RegistrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class LoginTests(APITestCase):
+class LoginTests(MockedEmailTestCase):
     def setUp(self):
         self.url = '/api/auth/login/'
         self.user = User.objects.create_user(
