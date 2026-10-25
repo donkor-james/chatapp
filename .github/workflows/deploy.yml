@@ -88,7 +88,7 @@ jobs:
 
       - name: Build Backend Image
         run: |
-          docker build -t chatapp-backend:latest ./chat_backend
+          docker build -t chatapp-backend:latest .
 
       - name: Build Frontend Image
         run: |
