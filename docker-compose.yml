@@ -39,8 +39,6 @@ services:
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 authproject.asgi:application"
     volumes:
       - ./chat_backend:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
     ports:
       - "8000:8000"
     environment:
@@ -61,44 +59,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./chatapp_frontend
-      dockerfile: Dockerfile
-    container_name: chatapp_frontend
-    volumes:
-      - ./chatapp_frontend:/app
-      - /app/node_modules
-      - frontend_build:/app/build
-    environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
-      - REACT_APP_WS_URL=${REACT_APP_WS_URL:-ws://localhost:8000}
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    container_name: chatapp_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/app/staticfiles:ro
-      - media_volume:/app/media:ro
-      - frontend_build:/usr/share/nginx/html:ro
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:
-  static_volume:
-  media_volume:
-  frontend_build:
 
 networks:
   default:
